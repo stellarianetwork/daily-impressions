@@ -13,7 +13,7 @@ const chatCompletion = await generateChatCompletion({ posts });
 console.log("Generated chat completion.", chatCompletion);
 
 console.log("Try to post to mastodon...");
-postToMastodon({
+await postToMastodon({
     message: chatCompletion ?? "きょうのえあいの作成中にエラーがおきました",
 });
 console.log("Posted to mastodon.");
