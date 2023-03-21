@@ -8,8 +8,12 @@ import { OpenAI } from "https://deno.land/x/openai@1.3.0/mod.ts";
 export async function fetchDailyPostsFromNotestock({
     acct = config.TARGET_ACCT,
     // yesterday's date, format like 20230101,
+    // new Date().getTimezoneOffset() * 60 * 1000 means timezone offset in milliseconds
     // 86400000 means 24 hours in milliseconds
-    date = new Date(Date.now() - 86400000)
+    // like a garbage code, but it works :fire:
+    date = new Date(
+        Date.now() - new Date().getTimezoneOffset() * 60 * 1000 - 86400000
+    )
         .toISOString()
         .slice(0, 10)
         .replace(/-/g, ""),
