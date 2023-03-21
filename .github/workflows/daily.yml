@@ -1,0 +1,26 @@
+name: Daily Run
+
+on:
+  push:
+  schedule:
+    - cron: "0 15 */1 * *"
+
+jobs:
+  run:
+    name: Run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      - name: Deno Run
+        run: |
+          deno run -q -A src/index.ts
+        env:
+          TZ: "Asia/Tokyo"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TARGET_ACCT: ${{ secrets.TARGET_ACCT }}
+          MASTODON_BOT_HOST: ${{ secrets.MASTODON_BOT_HOST }}
+          MASTODON_BOT_TOKEN: ${{ secrets.MASTODON_BOT_TOKEN }}
