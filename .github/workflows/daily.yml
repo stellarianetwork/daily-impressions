@@ -16,6 +16,7 @@ jobs:
         with:
           deno-version: v1.x
       - name: Deno Run
+        timeout-minutes: 5
         run: |
           deno run -q -A src/index.ts
         env:
