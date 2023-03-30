@@ -38,15 +38,20 @@ export async function fetchDailyPostsFromNotestock({
             return true;
         })
         .map((e) => {
+            const bodyElement = e.querySelector(".notebody .content");
             const date = e
                 .querySelector(".info > a")
                 ?.innerText.replace(/:\d{2}$/, "")
                 .replace(":", "");
-            const body =
-                e
-                    .querySelector(".notebody .content")
-                    ?.innerText.replaceAll("\n", "\\n")
-                    .trim() ?? "";
+
+            if (bodyElement) {
+                bodyElement.innerHTML = bodyElement.innerHTML.replaceAll(
+                    "<br>",
+                    "\\n"
+                );
+            }
+            const body = bodyElement?.innerText.trim() ?? "";
+
             return { date, body };
         })
         // remove empty posts
@@ -55,6 +60,19 @@ export async function fetchDailyPostsFromNotestock({
         .filter((e) => !e.body.startsWith("@"))
         // remove quote posts
         .filter((e) => !e.body.startsWith("> "))
+        // remove URL posts but if it contains comment, keep it
+        .flatMap((e) => {
+            if (!e.body.includes("\\n")) return [e];
+            if (!e.body.includes("http")) return [e];
+
+            const comment = e.body.split("\\n").at(-1)!;
+            // if post have no comment, "comment" will be URL. so filter it
+            if (comment.startsWith("http")) {
+                return [];
+            }
+
+            return [{ date: e.date, body: comment }];
+        })
         .map((e) => `${e.date}: ${e.body}`);
 
     console.log(posts);
