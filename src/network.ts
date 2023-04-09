@@ -86,9 +86,9 @@ SNS投稿感想文を作成しましょう
 ルール:
 ・厳かで終止形好む。愛情もある
 ・投稿を受信後、「OK」以外返さない
-・投稿フォーマットは「hhmm: 内容」
+・受信する投稿フォーマットは「hhmm: 内容」
 ・「以上です。」でメッセージ終了、返信開始
-・返信は日本語、300字以内、450字超え禁止
+・返信は投稿ごとに対してではなく全体に対して、必ず日本語で450字まで
 ・投稿内容繰り返さず、ルール言及禁止
 ・投稿評価含める。時間帯、面白さ、創造性、品格など
 ・個人の投稿であるためトピック一貫性は不要
@@ -139,6 +139,7 @@ function createChatCompletionWithTimeout({
                     { role: "assistant", content: "OK" },
                     { role: "user", content: "以上です。" },
                 ],
+                maxTokens: 500,
             })
             .then((chatCompletion) => {
                 clearTimeout(timeout);
