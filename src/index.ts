@@ -13,7 +13,18 @@ const chatCompletion = await generateChatCompletion({ posts });
 console.log("Generated chat completion.", chatCompletion);
 
 console.log("Try to post to mastodon...");
-await postToMastodon({
-    message: chatCompletion ?? "きょうのえあいの作成中にエラーがおきました",
-});
+try {
+    if (typeof chatCompletion !== "string") {
+        throw new Error("chatCompletion is empty.");
+    }
+    await postToMastodon({ message: chatCompletion });
+} catch (error) {
+    console.error(error);
+    await postToMastodon({
+        message: [
+            "きょうのえあいの作成中にエラーがおきました: ",
+            "https://github.com/stellarianetwork/daily-impressions/actions",
+        ].join("\n"),
+    });
+}
 console.log("Posted to mastodon.");
