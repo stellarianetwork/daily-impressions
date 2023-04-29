@@ -1,8 +1,17 @@
+import { parse } from "./deps.ts";
 import {
     fetchDailyPostsFromNotestock,
     generateChatCompletion,
     postToMastodon,
 } from "./network.ts";
+
+const parsedArgs = parse(Deno.args);
+const isDryRun = parsedArgs["dry-run"] === true;
+
+if (isDryRun) {
+    console.log("Dry run. May skip posting processes.");
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+}
 
 try {
     console.log("Try to fetch posts from notestock...");
@@ -15,12 +24,23 @@ try {
         throw new Error("chatCompletion is empty.");
     }
 
+    if (isDryRun) {
+        console.log("Dry run. Skip posting to mastodon.");
+        Deno.exit(0);
+    }
+
     console.log("Try to post to mastodon...");
     await postToMastodon({ message: chatCompletion });
 
     console.log("Successfully posted to mastodon.");
 } catch (error) {
     console.error(error);
+
+    if (isDryRun) {
+        console.log("Dry run. Skip posting to mastodon.");
+        Deno.exit(0);
+    }
+
     await postToMastodon({
         message: [
             "きょうのえあいの作成中にエラーがおきました: ",
