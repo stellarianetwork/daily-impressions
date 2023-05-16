@@ -140,7 +140,7 @@ function createChatCompletionWithTimeout({
                             .trim(),
                     },
                 ],
-                maxTokens: 500,
+                maxTokens: 480,
             })
             .then((chatCompletion) => {
                 clearTimeout(timeout);
