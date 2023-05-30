@@ -84,9 +84,11 @@ export async function generateChatCompletion({ posts }: { posts: string[] }) {
     async function fetchRetry(tryCount: number): Promise<ChatCompletion> {
         try {
             console.log(`Remaining attempts: ${tryCount}`);
-            return await createChatCompletionWithTimeout({
+            const res = await createChatCompletionWithTimeout({
                 posts,
             });
+            if ("error" in res) throw new Error("OpenAI API Error");
+            return res;
         } catch (err) {
             if (tryCount === 1) throw err;
             return await fetchRetry(tryCount - 1);
