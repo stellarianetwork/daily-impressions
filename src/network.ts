@@ -105,7 +105,11 @@ export async function fetchDailyPostsFromNotestock({
 
 export async function generateChatCompletion({ posts }: { posts: string[] }) {
     const chatCompletion = await fetchRetry(
-        () => createChatCompletionWithTimeout({ posts }),
+        async () => {
+            const res = await createChatCompletionWithTimeout({ posts });
+            if ("error" in res) throw new Error("OpenAI API Error");
+            return res;
+        },
         3,
     );
 
