@@ -1,4 +1,4 @@
-import config from "./config.ts";
+import { config } from "./config.ts";
 import {
     DOMParser,
     type Element,
@@ -9,13 +9,13 @@ import {
 } from "https://deno.land/x/openai@1.3.0/mod.ts";
 
 export async function fetchDailyPostsFromNotestock({
-    acct = config.TARGET_ACCT,
+    acct = config.MASTODON_TARGET_ACCT,
     // yesterday's date, format like 20230101,
     // new Date().getTimezoneOffset() * 60 * 1000 means timezone offset in milliseconds
     // 86400000 means 24 hours in milliseconds
     // like a garbage code, but it works :fire:
     date = new Date(
-        Date.now() - new Date().getTimezoneOffset() * 60 * 1000 - 86400000
+        Date.now() - new Date().getTimezoneOffset() * 60 * 1000 - 86400000,
     )
         .toISOString()
         .slice(0, 10)
@@ -47,7 +47,7 @@ export async function fetchDailyPostsFromNotestock({
             if (bodyElement) {
                 bodyElement.innerHTML = bodyElement.innerHTML.replaceAll(
                     "<br>",
-                    "\\n"
+                    "\\n",
                 );
             }
             const body = bodyElement?.innerText.trim() ?? "";
@@ -120,7 +120,8 @@ function createChatCompletionWithTimeout({
 
                     {
                         role: "assistant",
-                        content: `これはえあいというユーザーが今日SNSで投稿した内容の一覧です。時間を表す4桁の数字の後に投稿の本文が記載されています。`,
+                        content:
+                            `これはえあいというユーザーが今日SNSで投稿した内容の一覧です。時間を表す4桁の数字の後に投稿の本文が記載されています。`,
                     },
                     {
                         role: "user",
@@ -140,7 +141,6 @@ function createChatCompletionWithTimeout({
                             .trim(),
                     },
                 ],
-                maxTokens: 500,
             })
             .then((chatCompletion) => {
                 clearTimeout(timeout);
@@ -153,7 +153,37 @@ function createChatCompletionWithTimeout({
     });
 }
 
-export async function postToMastodon({ message }: { message: string }) {
+function splitMessage(message: string, maxLength: number): string[] {
+    const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+    const segments = [...segmenter.segment(message)];
+    let currentMessage = "";
+    const remainingSegments = segments;
+    const messages: string[] = [];
+
+    while (remainingSegments.length > 0) {
+        const nextSegment = remainingSegments[0]?.segment || "";
+        if ((currentMessage + nextSegment).length > maxLength) {
+            messages.push(currentMessage);
+            currentMessage = "";
+        } else {
+            const shiftedSegment = remainingSegments.shift();
+            if (shiftedSegment) {
+                currentMessage += shiftedSegment.segment;
+            }
+        }
+    }
+
+    if (currentMessage) {
+        messages.push(currentMessage);
+    }
+
+    return messages;
+}
+
+async function postMessage(
+    status: string,
+    inReplyToId: string | null,
+): Promise<string> {
     const res = await (
         await fetch(`https://${config.MASTODON_BOT_HOST}/api/v1/statuses`, {
             method: "POST",
@@ -162,12 +192,29 @@ export async function postToMastodon({ message }: { message: string }) {
                 Authorization: `Bearer ${config.MASTODON_BOT_TOKEN}`,
             },
             body: JSON.stringify({
-                status: `${config.TARGET_ACCT} ${message}`.trim(),
+                status: `${config.MASTODON_TARGET_ACCT} ${status}`.trim(),
                 spoiler_text: "きょうのえあい",
+                in_reply_to_id: inReplyToId,
             }),
         })
     ).json();
+
     console.log(res);
+
+    return res.id;
+}
+
+export async function postToMastodon({ message }: { message: string }) {
+    const MAX_LENGTH = config.MASTODON_TOOT_MAX_LENGTH -
+        config.MASTODON_TARGET_ACCT.length - 1;
+    const messages = splitMessage(message, MAX_LENGTH);
+    let inReplyToId = null;
+
+    console.log(messages, MAX_LENGTH);
+
+    for (const status of messages) {
+        inReplyToId = await postMessage(status, inReplyToId);
+    }
 
     return;
 }

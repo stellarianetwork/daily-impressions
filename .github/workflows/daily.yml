@@ -22,6 +22,7 @@ jobs:
         env:
           TZ: "Asia/Tokyo"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TARGET_ACCT: ${{ secrets.TARGET_ACCT }}
-          MASTODON_BOT_HOST: ${{ secrets.MASTODON_BOT_HOST }}
+          MASTODON_TOOT_MAX_LENGTH: ${{ vars.MASTODON_TOOT_MAX_LENGTH }}
+          MASTODON_TARGET_ACCT: ${{ vars.MASTODON_TARGET_ACCT }}
+          MASTODON_BOT_HOST: ${{ vars.MASTODON_BOT_HOST }}
           MASTODON_BOT_TOKEN: ${{ secrets.MASTODON_BOT_TOKEN }}

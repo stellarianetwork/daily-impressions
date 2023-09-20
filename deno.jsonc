@@ -1,0 +1,14 @@
+{
+    "tasks": {
+        "start": "deno run --allow-net --allow-read --allow-env src/index.ts"
+    },
+    "fmt": {
+        "include": ["src"],
+        "indentWidth": 4
+    },
+    "lint": {
+        "rules": {
+            "tags": ["recommended"]
+        }
+    }
+}
