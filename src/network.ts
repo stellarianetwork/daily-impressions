@@ -2,11 +2,25 @@ import { config } from "./config.ts";
 import {
     DOMParser,
     type Element,
+    type HTMLDocument,
 } from "https://deno.land/x/deno_dom@v0.1.36-alpha/deno-dom-wasm.ts";
 import {
     ChatCompletion,
     OpenAI,
 } from "https://deno.land/x/openai@1.3.0/mod.ts";
+
+async function fetchRetry<T>(
+    func: () => Promise<T>,
+    tryCount: number,
+): Promise<T> {
+    try {
+        console.log(`Remaining attempts: ${tryCount}`);
+        return await func();
+    } catch (err) {
+        if (tryCount === 1) throw err;
+        return await fetchRetry(func, tryCount - 1);
+    }
+}
 
 export async function fetchDailyPostsFromNotestock({
     acct = config.MASTODON_TARGET_ACCT,
@@ -21,14 +35,23 @@ export async function fetchDailyPostsFromNotestock({
         .slice(0, 10)
         .replace(/-/g, ""),
 }: { acct?: string; date?: string } = {}) {
-    const html = await (
-        await fetch(`https://notestock.osa-p.net/${acct}/${date}/view`)
-    ).text();
-
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    if (!doc) {
-        throw new Error("Failed to parse HTML");
+    async function fetchHtml(acct: string, date: string): Promise<string> {
+        const response = await fetch(
+            `https://notestock.osa-p.net/${acct}/${date}/view`,
+        );
+        return response.text();
     }
+
+    function parseHtml(html: string): HTMLDocument {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        if (!doc) {
+            throw new Error("Failed to parse HTML");
+        }
+        return doc;
+    }
+
+    const html = await fetchHtml(acct, date);
+    const doc = parseHtml(html);
 
     const posts = ([...doc.querySelectorAll(".note")] as Element[])
         .filter((e) => {
@@ -81,18 +104,10 @@ export async function fetchDailyPostsFromNotestock({
 }
 
 export async function generateChatCompletion({ posts }: { posts: string[] }) {
-    async function fetchRetry(tryCount: number): Promise<ChatCompletion> {
-        try {
-            console.log(`Remaining attempts: ${tryCount}`);
-            return await createChatCompletionWithTimeout({
-                posts,
-            });
-        } catch (err) {
-            if (tryCount === 1) throw err;
-            return await fetchRetry(tryCount - 1);
-        }
-    }
-    const chatCompletion = await fetchRetry(3);
+    const chatCompletion = await fetchRetry(
+        () => createChatCompletionWithTimeout({ posts }),
+        3,
+    );
 
     console.log(JSON.stringify(chatCompletion, null, 2));
     return chatCompletion.choices.at(0)?.message.content;
@@ -129,7 +144,7 @@ function createChatCompletionWithTimeout({
                             `このSNS投稿に対する感想文を作成しましょう`,
                             `返信のルール:`,
                             `・厳かで終止形を使う。愛情もある`,
-                            `・返信は投稿ごとに対してではなく全体に対して、必ず日本語で450字まで`,
+                            `・返信は投稿ごとに対してではなく全体に対して、日本語で450字程度`,
                             `・投稿内容繰り返さず、ルール言及禁止`,
                             `・投稿評価含める。時間帯、面白さ、創造性、品格など`,
                             `・個人の投稿であるためトピック一貫性は不要`,
@@ -157,19 +172,15 @@ function splitMessage(message: string, maxLength: number): string[] {
     const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
     const segments = [...segmenter.segment(message)];
     let currentMessage = "";
-    const remainingSegments = segments;
     const messages: string[] = [];
 
-    while (remainingSegments.length > 0) {
-        const nextSegment = remainingSegments[0]?.segment || "";
+    for (let i = 0; i < segments.length; i++) {
+        const nextSegment = segments[i]?.segment || "";
         if ((currentMessage + nextSegment).length > maxLength) {
             messages.push(currentMessage);
-            currentMessage = "";
+            currentMessage = nextSegment;
         } else {
-            const shiftedSegment = remainingSegments.shift();
-            if (shiftedSegment) {
-                currentMessage += shiftedSegment.segment;
-            }
+            currentMessage += nextSegment;
         }
     }
 

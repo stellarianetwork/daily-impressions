@@ -8,9 +8,13 @@ import {
 const parsedArgs = parse(Deno.args);
 const isDryRun = parsedArgs["dry-run"] === true;
 
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 if (isDryRun) {
     console.log("Dry run. May skip posting processes.");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await sleep(5000);
 }
 
 try {
