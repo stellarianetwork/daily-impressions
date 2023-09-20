@@ -207,7 +207,7 @@ async function postMessage(
                 Authorization: `Bearer ${config.MASTODON_BOT_TOKEN}`,
             },
             body: JSON.stringify({
-                status: `${config.MASTODON_TARGET_ACCT} ${status}`.trim(),
+                status,
                 spoiler_text: "きょうのえあい",
                 in_reply_to_id: inReplyToId,
             }),
@@ -220,12 +220,11 @@ async function postMessage(
 }
 
 export async function postToMastodon({ message }: { message: string }) {
-    const MAX_LENGTH = config.MASTODON_TOOT_MAX_LENGTH -
-        config.MASTODON_TARGET_ACCT.length - 1;
-    const messages = splitMessage(message, MAX_LENGTH);
+    const messages = splitMessage(
+        `${config.MASTODON_TARGET_ACCT} ${message}`,
+        config.MASTODON_TOOT_MAX_LENGTH,
+    );
     let inReplyToId = null;
-
-    console.log(messages, MAX_LENGTH);
 
     for (const status of messages) {
         inReplyToId = await postMessage(status, inReplyToId);
