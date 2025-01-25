@@ -1,6 +1,7 @@
 name: Daily Run
 
 on:
+  workflow_dispatch:
   push:
   schedule:
     - cron: "0 15 */1 * *"
