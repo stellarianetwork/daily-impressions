@@ -133,7 +133,7 @@ function createChatCompletionWithTimeout({
 
         openAI
             .createChatCompletion({
-                model: "gpt-4o",
+                model: "o1",
                 messages: [
                     { role: "user", content: posts.join("\n") },
 
